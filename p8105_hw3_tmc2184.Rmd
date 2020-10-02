@@ -15,7 +15,8 @@ knitr::opts_chunk$set(
 library(tidyverse)
 ```
 
-Problem 1
+# Problem 1
+
 ```{r load data}
 library(p8105.datasets)
 data("instacart")
@@ -25,7 +26,7 @@ names(instacart)
 
 > The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illustrative examples of observations. Then, do or answer the following (commenting on the results of each):
 
-**The "instacart" dataset contains information on orders placed by different instacart users, with `r ncol(instacart)` variables including details on the order itself (e.g., time of order, order number) and the products ordered (e.g., whether this is a reorder, product number, product aisle). Variable names include `r names(instacart[,1:13])`, and `r names(instacart[,14])`. It contains `r nrow(instacart)` observations, comprising `r nrow(distinct(select(instacart, order_id)))` orders from `r nrow(distinct(select(instacart, user_id)))` users.**
+**The "instacart" dataset contains information on orders placed by different instacart users, with `r ncol(instacart)` variables including details on the order itself (e.g., time of order, order number) and the products ordered (e.g., whether this is a reorder, product number, product aisle). Variable names include `r names(instacart[,1:13])`, and `r names(instacart[,14])`. It contains `r nrow(instacart)` observations (i.e., products from an order), comprising `r nrow(distinct(select(instacart, order_id)))` orders from `r nrow(distinct(select(instacart, user_id)))` users.**
 
 
 > How many aisles are there, and which aisles are the most items ordered from?
@@ -64,7 +65,80 @@ instacart %>%
 ```{r table of mean hours}
 instacart %>%
   filter(product_name==c("Pink Lady Apples", "Coffee Ice Cream")) %>%
-  group_by(product_name) %>% 
-  summarize(mean_hour = round(mean(order_hour_of_day),2)) 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>%
+  rename(day_of_week = order_dow) %>%
+  knitr::kable(digits = 1)
 ```
+
+# Problem 2
+
+> Accelerometers have become an appealing alternative to self-report techniques for studying physical activity in observational studies and clinical trials, largely because of their relative objectivity. During observation periods, the devices measure “activity counts” in a short period; one-minute intervals are common. Because accelerometers can be worn comfortably and unobtrusively, they produce around-the-clock observations.
+This problem uses five weeks of accelerometer data collected on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF). The data can be downloaded here. In this spreadsheet, variables activity.* are the activity counts for each minute of a 24-hour day starting at midnight.
+
+> Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+
+```{r load and tidy data}
+weekend_df=
+  tibble(
+    day = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
+    weekend = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)
+  )
+accel_data = read.csv("./data/accel_data.csv") %>%
+  pivot_longer(activity.1:activity.1440,
+    names_to = "minute", 
+    names_prefix = "activity.",
+    values_to = "activity_count") %>%
+  mutate(minute = as.integer(minute)) %>% 
+  left_join(weekend_df, by="day")
+```
+
+**This dataset contains accelerometer data for a 63 year-old man admitted Columbia University Irving Medical Center's Cardiac Care unit with congestive heart failure (CHF). Accelerometer data were collected during each minute (24 hour day, beginning at midnight) on `r nrow(distinct(select(accel_data, day_id)))` different days, `r table(distinct(select(accel_data, day_id, weekend))[,2])[2]` of which were weekend days, resulting in `r nrow(accel_data)` observations.**
+
+
+> Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
+
+```{r summarize daily activity}
+accel_data %>%
+  group_by(day_id) %>%
+  summarize(daily_activity = sum(activity_count))
+
+```
+
+
+> Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+
+```{r 24-activity plots}
+accel_data %>%
+  mutate(
+    day = factor(day, levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))) %>%
+ggplot(aes(x = minute, y = activity_count, color = day)) +
+  geom_smooth(se = FALSE) + 
+  geom_point(aes(size = activity_count), alpha = .75) + 
+  labs(
+    title = "Accelerometer Measured Activity Counts over 24-hour periods",
+    x = "Minute (Midnight to Midnight)",
+    y = "Activity Count"
+  ) 
+```
+
+# Problem 3
+
+```{r load data}
+library(p8105.datasets)
+data("ny_noaa")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
