@@ -63,11 +63,22 @@ instacart %>%
 > Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
 
 ```{r table of mean hours}
+days_df=
+  tibble(
+    order_dow = 0:6,
+    day_of_week = c("Sunday", "Monday", "Tuesday", "Wednesday",
+                    "Thursday", "Friday", "Saturday")
+  )
+
 instacart %>%
+  left_join(days_df, by = "order_dow") %>%
+  mutate(
+    day_of_week = forcats::fct_relevel(day_of_week, c("Sunday", "Monday", "Tuesday", "Wednesday",
+                    "Thursday", "Friday", "Saturday"))
+    ) %>% 
   filter(product_name==c("Pink Lady Apples", "Coffee Ice Cream")) %>%
-  group_by(product_name, order_dow) %>% 
+  group_by(product_name, day_of_week) %>% 
   summarize(mean_hour = mean(order_hour_of_day)) %>%
-  rename(day_of_week = order_dow) %>%
   knitr::kable(digits = 1)
 ```
 
@@ -105,6 +116,7 @@ accel_data %>%
 
 ```
 
+**It is hard to make sense of these data from the table; thus, no trends are immediately apparent.**
 
 > Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 
@@ -114,13 +126,15 @@ accel_data %>%
     day = factor(day, levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))) %>%
 ggplot(aes(x = minute, y = activity_count, color = day)) +
   geom_smooth(se = FALSE) + 
-  geom_point(aes(size = activity_count), alpha = .75) + 
+  geom_point(alpha = .75) + 
   labs(
     title = "Accelerometer Measured Activity Counts over 24-hour periods",
     x = "Minute (Midnight to Midnight)",
     y = "Activity Count"
   ) 
 ```
+
+**Activity counts are relatively consistent across days, wiwth slightly higher activity levels between Friday and Sunday (i.e., over the weekend). There are also very low levels of activity during the night, and the highest activity counts appear to occur sometime around waking and right before sleeping.**
 
 # Problem 3
 
@@ -172,7 +186,7 @@ ny_noaa %>%
   filter(month %in% c("January","July")) %>%
   group_by(id, year, month) %>%
   summarize(mean_max = mean(tmax)) %>%
-ggplot(aes(x = year, y = mean_max)) + 
+ggplot(aes(x = year, y = mean_max, color=month)) + 
   geom_point() + 
   geom_smooth() +
   facet_grid(~month) +
@@ -183,8 +197,9 @@ ggplot(aes(x = year, y = mean_max)) +
     ) +
   scale_x_continuous(
     breaks = c(1980, 1990, 2000, 2010), 
-    labels = c("1980", "1990", "2000", "2010")) 
-   + opts(axis.title.x = theme_text(vjust=0.5))
+    labels = c("1980", "1990", "2000", "2010")) +
+  theme(text = element_text(size = 15), 
+        legend.position = "none")
 ```
 
 **The maximum temperature appears to be increasing slightly over the years in the January panel; also, the maximum temperature is much higher in July than in January. There is one noticeably colder July day in 1988.**
@@ -192,19 +207,27 @@ ggplot(aes(x = year, y = mean_max)) +
 > Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option);
 
 ```{r max v. min temp}
+max_df <- 
+  tibble(
+    observation = c("tmax", "tmin"),
+    obs = c("Maximum", "Minimum")
+  )
 ny_noaa %>%
-  mutate(
-    month = forcats::fct_relevel(month, c("January", "February", "March", "April", "May",
-                                          "June", "July", "August", "September", "October",
-                                          "November", "December")) 
-  ) %>%
-ggplot(aes(x = tmin, y = tmax)) + 
-  geom_point() + 
-  facet_grid(~month) +
+  select(id, tmax, tmin) %>% 
+  pivot_longer(
+    tmax:tmin,
+    names_to = "observation", 
+    values_to = "temp") %>% 
+  left_join(max_df, by="observation") %>%
+  ggplot(aes(x = temp, fill = obs)) +
+  geom_density(alpha = .5) + 
+  facet_grid(~obs) + 
+  viridis::scale_fill_viridis(discrete = TRUE) +
   labs(
-    title = "Maximum v. Minimum Temperatures",
-    x = "Minimum Temperature (C)",
-    y = "Maximum Temperature (C)"
+    title = "Maximum and Minimum Temperatures",
+    x = "Maximum and Minimum Temperatures",
+    y = "Temperature (C)",
+    fill = "Temperature"
     )
 ```
 
@@ -224,7 +247,9 @@ ggplot(aes(x = year_f, y =snow)) +
     title = "Snowfall, 1981 to 2010",
     x = "Year",
     y = "Snowfall (mm)"
-    )
+    ) +
+  theme(text = element_text(size = 15), 
+        axis.text.x = element_text(angle = 45, hjust=1, size=10))
 ```
 
 
