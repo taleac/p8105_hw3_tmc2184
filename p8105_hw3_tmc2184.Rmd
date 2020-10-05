@@ -124,17 +124,59 @@ ggplot(aes(x = minute, y = activity_count, color = day)) +
 
 # Problem 3
 
-```{r load data}
+```{r load noaa data}
 library(p8105.datasets)
 data("ny_noaa")
+head(ny_noaa, 10)
+names(ny_noaa)
+```
+
+> The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
+
+**Data are drawn from the National Oceanic and Atmospheric Association database, and were selected basedon the following criteria: (1) data were collected in New York state, and (2) datapoints feel between January 1, 1981 and December 31, 2010. There are `r nrow(ny_noaa)` observations from `r nrow(distinct(select(ny_noaa,id)))` zip codes, and there are `r ncol(ny_noaa)` variables: `r names(ny_noaa[,1:6])`, and `r names(ny_noaa[7])`.**
+
+**Data are missing, because not every weather station collected information on each variable. For precipitation in tenths of a mm, there are `r sum(is.na(ny_noaa$prcp))` missing observations (`r round(((sum(is.na(ny_noaa$prcp)))/(nrow(ny_noaa)))*100,2)` percent). For snowfall (mm), there are `r sum(is.na(ny_noaa$snow))` missing observations (`r round(((sum(is.na(ny_noaa$snow)))/(nrow(ny_noaa)))*100,2)` percent). For snow depth (mm), there are `r sum(is.na(ny_noaa$snwd))` missing observations (`r round(((sum(is.na(ny_noaa$snwd)))/(nrow(ny_noaa)))*100,2)` percent). For maximum temperature (tenths of a degree C), there are `r sum(is.na(ny_noaa$tmax))` missing observations (`r round(((sum(is.na(ny_noaa$tmax)))/(nrow(ny_noaa)))*100,2)` percent). For minimum temperature (tenths of a degree C), there are `r sum(is.na(ny_noaa$tmin))` missing observations (`r round(((sum(is.na(ny_noaa$tmin)))/(nrow(ny_noaa)))*100,2)` percent).**
+
+> Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
+
+```{r clean ny_noaa data}
+
+month_df=
+  tibble(
+    month = 1:12,
+    month_name = month.name
+  )
+
+ny_noaa %>%
+  separate(date, into = c("year", "month", "day"), sep = "-")%>%
+  mutate(year=as.integer(year),
+         month=as.integer(month),
+         day=as.integer(day),
+         tmax=as.integer(tmax)*10,
+         tmin=as.integer(tmin)*10,
+         prcp=prcp*10) %>%
+  left_join(month_df, by = "month") %>%
+  select(id, year, month_name, day, prcp, snow, snwd, tmax, tmin) %>%
+  rename(month=month_name)
+```
+
+```{r}
+sort(table(pull(ny_noaa, snow)),decreasing=TRUE)[1]
+```
+
+**The most commonly observed value for snowfall in the ny_noaa dataset is 0, with `sort(table(pull(ny_noaa, snow)),decreasing=TRUE)[1]` observations. This makes sense, because many days are not winter days, and so there will often be no snowfall.**
+
+> Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+```{r}
+ny_noaa %>%
+  filter(month == c(""))
+ggplot(aes(x = tmax_sum)) + 
+  geom_point(aes(color = name))
 ```
 
 
-
-
-
-
-
+> Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
 
 
 
